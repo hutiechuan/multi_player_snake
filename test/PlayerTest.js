@@ -3,6 +3,7 @@ const Coordinate = require('../app/models/coordinate');
 const Direction = require('../app/models/direction');
 const Player = require('../app/models/player');
 
+
 describe('Player', () => {
     'use strict';
 

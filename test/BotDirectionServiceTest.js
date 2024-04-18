@@ -4,8 +4,12 @@ const Direction = require('../app/models/direction');
 const Player = require('../app/models/player');
 const BoardOccupancyService = require('../app/services/board-occupancy-service');
 const BotDirectionService = require('../app/services/bot-direction-service');
+const sinon = require('sinon');
+const GameControlsService = require('../app/services/game-controls-service');
 
 describe('BotDirectionService', () => {
+
+
     'use strict';
 
     let bot;
@@ -19,6 +23,18 @@ describe('BotDirectionService', () => {
         boardOccupancyService = new BoardOccupancyService();
         botDirectionService = new BotDirectionService(boardOccupancyService);
     });
+
+    it('should not change direction if no immediate danger is detected', done => {
+        sinon.stub(botDirectionService, 'isBotInDanger').returns(false);  // No danger at all
+        const initialDirection = bot.direction;
+        
+        botDirectionService.changeDirectionIfInDanger(bot);
+    
+        // Assert the direction did not change
+        assert.equal(bot.direction, initialDirection);
+        done();
+    });
+    
 
     it('should not change direction if it is safe two spaces ahead', done => {
         botDirectionService.changeDirectionIfInDanger(bot);
@@ -39,6 +55,8 @@ describe('BotDirectionService', () => {
         assert.isTrue(bot.direction === Direction.UP || bot.direction === Direction.DOWN);
         done();
     });
+
+    
 
     /**  3
      *
@@ -114,4 +132,105 @@ describe('BotDirectionService', () => {
         assert.equal(bot.direction, Direction.UP);
         done();
     });
+
+    it('should exhaust all direction alternatives when each direction is blocked', done => {
+        // Assume the bot is initially moving RIGHT
+        sinon.stub(botDirectionService, 'isBotInDanger')
+             .onCall(0).returns(true)  // Danger two spaces ahead in the current direction (RIGHT)
+             .onCall(1).returns(true)  // Danger in the first alternative (UP)
+             .onCall(2).returns(true)  // Danger in the second alternative (DOWN)
+             .onCall(3).returns(false) // Finally no danger when checking one space ahead (RIGHT again)
+             .onCall(4).returns(false); // No danger in the final fallback (DOWN)
+    
+        sinon.stub(GameControlsService, 'getValidNextMove').returns(['UP', 'DOWN']);
+        sinon.stub(botDirectionService, '_getRandomIntegerInRange').returns(0);  // Choose first option initially
+    
+        botDirectionService.changeDirectionIfInDanger(bot);
+        assert.notEqual(bot.direction, Direction.RIGHT); // Expect the direction to change from the initial
+        done();
+    });
+
+    it('should correctly execute changeToRandomDirection', done => {
+        // Setting up return values for the direction choices
+        sinon.stub(GameControlsService, 'getValidNextMove').returns(['UP', 'LEFT']);
+        sinon.stub(botDirectionService, '_getRandomIntegerInRange').returns(1);  // Force selection of 'LEFT'
+    
+        botDirectionService.changeToRandomDirection(bot);
+        assert.equal(bot.direction, 'LEFT'); // Expect the direction to be randomly set to 'LEFT'
+        done();
+    });
+
+    it('should cover all branches in changeToRandomDirection', () => {
+        const validDirections = ['UP', 'DOWN'];
+        sinon.stub(GameControlsService, 'getValidNextMove').returns(validDirections);
+    
+        // First possible outcome
+        sinon.stub(botDirectionService, '_getRandomIntegerInRange').returns(0);
+        botDirectionService.changeToRandomDirection(bot);
+        assert.equal(bot.direction, 'UP');
+    
+        // Second possible outcome
+        botDirectionService._getRandomIntegerInRange.returns(1);
+        botDirectionService.changeToRandomDirection(bot);
+        assert.equal(bot.direction, 'DOWN');
+    
+        // Cleanup stubs if necessary
+        botDirectionService._getRandomIntegerInRange.restore();
+    });
+
+    it('should cover all branches in isBotInDanger - out-of-bounds scenario', () => {
+        const headCoordinate = new Coordinate(0, 0);
+        const direction = Direction.UP;
+        
+        sinon.stub(boardOccupancyService, 'isOutOfBounds').returns(true);
+        
+        const result = botDirectionService.isBotInDanger(headCoordinate, direction, 2);
+        assert.isTrue(result, 'Bot should be in danger if next space is out-of-bounds');
+    });
+    
+    it('should cover all branches in isBotInDanger - space not safe scenario', () => {
+        const headCoordinate = new Coordinate(5, 5);
+        const direction = Direction.DOWN;
+        
+        sinon.stub(boardOccupancyService, 'isOutOfBounds').returns(false);
+        sinon.stub(boardOccupancyService, 'isSafe').returns(false);
+    
+        const result = botDirectionService.isBotInDanger(headCoordinate, direction, 2);
+        assert.isTrue(result, 'Bot should be in danger if next space is occupied');
+    });
+    
+    it('should cover all branches in changeToRandomDirection', () => {
+        const validDirections = ['UP', 'DOWN'];
+        sinon.stub(GameControlsService, 'getValidNextMove').returns(validDirections);
+    
+        // First possible outcome
+        sinon.stub(botDirectionService, '_getRandomIntegerInRange').returns(0);
+        botDirectionService.changeToRandomDirection(bot);
+        assert.equal(bot.direction, 'UP');
+    
+        // Second possible outcome
+        botDirectionService._getRandomIntegerInRange.returns(1);
+        botDirectionService.changeToRandomDirection(bot);
+        assert.equal(bot.direction, 'DOWN');
+    
+        // Cleanup stubs if necessary
+        botDirectionService._getRandomIntegerInRange.restore();
+    });
+    
+
+
+    
+    
+    
+
+    
+
+    
+    
+    
 });
+
+
+
+
+
