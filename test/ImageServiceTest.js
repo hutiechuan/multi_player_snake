@@ -32,6 +32,7 @@ describe('ImageService', function() {
 
     // Test to verify if the constructor initializes with expected default values
     describe('constructor', function() {
+        // Black Box Test: Tests behavior based on external observations without knowledge of internal state.
         it('should initialize with expected default values', function() {
             expect(imageService.backgroundImage).to.be.false;
         });
@@ -39,25 +40,25 @@ describe('ImageService', function() {
 
     // Test cases for clearPlayerImage method
     describe('clearPlayerImage', function() {
-        // Test if the player image is cleared and a notification is broadcast
+        //Black Box Test:  Test if the player image is cleared and a notification is broadcast, without accessing internal logic.
         it('should clear the player image and broadcast notification if player exists', function() {
             const playerId = 1;  // Assuming this ID is valid
             const player = { id: playerId, name: "John Doe", color: "blue", base64Image: "someImageData" };
             mockPlayerContainer.getPlayer.returns(player);
-    
+
             imageService.clearPlayerImage(playerId);
-    
+
             expect(player.base64Image).to.be.undefined;
             sinon.assert.calledWith(mockNotificationService.broadcastNotification, `${player.name} has removed their image.`, player.color);
         });
 
-        // Test handling of the method when the player does not exist
+        // Blackbox test handling of the method when the player does not exist
         it('should handle scenario where player does not exist', function() {
             mockPlayerContainer.getPlayer.returns(null); // Simulate player not found
             imageService.backgroundImage = true; // Assume background image is set
-    
+
             imageService.clearBackgroundImage(999); // Using an ID likely to be invalid
-    
+
             expect(imageService.backgroundImage).to.be.false;
             sinon.assert.notCalled(mockNotificationService.broadcastNotification);
         });
@@ -72,20 +73,21 @@ describe('ImageService', function() {
         });
     });
 
-    // Test cases for updatePlayerImage method
+    // Black Box Test: Ensures method does not alter internal state when player is not found.
     describe('updatePlayerImage', function() {
+        // blackbox test to test invalid player input of updatePlayerImage method
         it('should not perform any action if the player is not found', function() {
             mockPlayerContainer.getPlayer.returns(null); // No player found
             const base64Image = 'data:image/png;base64,VALIDBASE64';
-    
+
             imageService.updatePlayerImage(999, base64Image); // Nonexistent player ID
-    
+
             sinon.assert.notCalled(mockPlayer.setBase64Image);
             sinon.assert.notCalled(mockNotificationService.broadcastNotification);
         });
     });
 
-    // Test cases for clearBackgroundImage method
+    // Black Box Test: Checks method's external behavior under various conditions.
     describe('clearBackgroundImage', function() {
         it('should clear the background image if it is set', function() {
             imageService.backgroundImage = true; // Simulate background image is set
@@ -102,7 +104,7 @@ describe('ImageService', function() {
         });
     });
 
-    // Test cases for updateBackgroundImage method
+    // Black Box Test: Tests method's external interactions and result based on valid or invalid input.
     describe('updateBackgroundImage', function() {
         it('should update the background image and notify when player is found and image is valid', function() {
             const base64Image = 'data:image/png;base64,VALIDBASE64';

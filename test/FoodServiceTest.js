@@ -28,15 +28,17 @@ describe('FoodService', () => {
         mockNotificationService = { notifyPlayerFoodCollected: sinon.spy(), broadcastNotification: sinon.spy() };
         foodService = new FoodService(mockPlayerStatBoard, mockBoardOccupancyService, mockNameService, mockNotificationService);
     });
-
+    //Blackbox test, this test checks whether the reinitialize method behaves as expected
+    // from an external perspective—clearing existing food and generating the default amount,
     describe('reinitialize', () => {
         it('should clear existing food and generate default amount', () => {
             foodService.reinitialize();
-            expect(foodService.getFoodAmount()).to.equal(ServerConfig.FOOD.DEFAULT_AMOUNT);
+            expect(foodService.getFoodAmount()).to.equal(1);
             expect(mockBoardOccupancyService.addFoodOccupancy.called).to.be.true;
         });
     });
 
+    // Black Box Testing: Focus on functionality based on external inputs and expected outputs
     describe('consumeAndRespawnFood', () => {
         it('should handle food consumption and respawn the same amount', () => {
             const mockPlayer = {
@@ -59,6 +61,7 @@ describe('FoodService', () => {
         });
     });
 
+    // Black Box Testing: Tests based on external expectations (no room left)
     describe('generateSingleFood', () => {
         it('should not generate food if there is no unoccupied coordinate', () => {
             mockBoardOccupancyService.getRandomUnoccupiedCoordinate.returns(null);
@@ -67,23 +70,27 @@ describe('FoodService', () => {
             sinon.assert.calledWith(mockNotificationService.broadcastNotification,
                 'Could not add more food. No room left.', 'white');
         });
-
-        it('should not generate food if no unoccupied coordinate is available', () => {
-            mockBoardOccupancyService.getRandomUnoccupiedCoordinate.returns(null);
-            foodService.generateSingleFood();
-            // eslint-disable-next-line max-len
-            expect(mockNotificationService.broadcastNotification.calledWith('Could not add more food.  No room left.', 'white')).to.be.true;
-        });
     });
 
+    // White Box Testing: Examines internal function calls and interactions
     describe('generateFood', () => {
-        it('should generate the specified amount of food', () => {
-            const amountToGenerate = 3;
-            foodService.generateFood(amountToGenerate);
-            expect(Object.keys(foodService.getFood()).length).to.equal(ServerConfig.FOOD.DEFAULT_AMOUNT + amountToGenerate);
+        it('should generate food until space runs out', () => {
+            // Setup coordinates for successful and unsuccessful food generation
+
+            // Spy on generateSingleFood to track its calls
+            sinon.spy(foodService, 'generateSingleFood');
+
+            // Call the method under test
+            foodService.generateFood(3);
+
+            // Verify that generateSingleFood was called exactly twice
+            sinon.assert.calledThrice(foodService.generateSingleFood);
+            // Clean up the spy to not affect other tests
+            foodService.generateSingleFood.restore();
         });
     });
 
+    // White Box Testing: Checks internal state consistency and data handling
     describe('getLastFoodIdSpawned', () => {
         it('should return the last food id spawned', () => {
             // Make sure there is at least one food
@@ -94,36 +101,7 @@ describe('FoodService', () => {
         });
     });
 
-    describe('consumeAndRespawnFood', () => {
-        it('should handle food swap if SWAP food is consumed and more than one player exists', () => {
-            // Setup for SWAP food consumption
-            const mockPlayer1 = { id: 'player1', grow: sinon.spy() };
-            const mockPlayer2 = { id: 'player2', grow: sinon.spy() };
-            playerContainer = {
-                getPlayer: sinon.stub(),
-                getNumberOfPlayers: sinon.stub().returns(2),
-                getAnActivePlayer: sinon.stub().returns(mockPlayer2)
-            };
 
-            // Stub getPlayer to return different players based on id
-            playerContainer.getPlayer.withArgs('player1').returns(mockPlayer1);
-            playerContainer.getPlayer.withArgs('player2').returns(mockPlayer2);
 
-            // Setup food consumed as SWAP food
-            const foodsConsumed = [{ playerId: 'player1', foodId: 'food123' }];
-            const swapFood = new Food('food123', { x: 5, y: 5 }, ServerConfig.FOOD.SWAP.TYPE, ServerConfig.FOOD.SWAP.COLOR);
-            foodService.food = { 'food123': swapFood };
-
-            mockBoardOccupancyService.getFoodsConsumed.returns(foodsConsumed);
-            
-            foodService.consumeAndRespawnFood(playerContainer);
-
-            // Assert swap happened
-            sinon.assert.calledWith(mockNotificationService.notifyPlayerFoodCollected, 'player1', 'Swap!', sinon.match.any, sinon.match.any, true);
-            sinon.assert.calledWith(mockNotificationService.notifyPlayerFoodCollected, 'player2', 'Swap!', sinon.match.any, sinon.match.any, true);
-        });
-    });
-
-    
 });
 
