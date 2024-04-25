@@ -17,9 +17,6 @@ describe('AdminService', function() {
             getLastFoodIdSpawned: sinon.stub(),
             removeFood: sinon.stub()
         };
-        mockNameService = {
-            getBotId: sinon.stub()
-        };
         mockNotificationService = {
             broadcastNotification: sinon.stub()
         };

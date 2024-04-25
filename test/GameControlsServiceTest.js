@@ -6,6 +6,14 @@ const GameControlsService = require('../app/services/game-controls-service');
 describe('GameControlsService', () => {
     'use strict';
 
+    let player;
+
+    beforeEach(() => {
+        player = new Player();
+        player.changeDirection = sinon.spy(); // Mock the changeDirection method
+    });
+    
+
     it('should get valid next moves when moving up', done => {
         const nextMoves = GameControlsService.getValidNextMove(Direction.UP);
         assert.deepEqual(nextMoves, [Direction.LEFT, Direction.RIGHT]);
@@ -62,4 +70,6 @@ describe('GameControlsService', () => {
         assert.equal(player.direction, Direction.RIGHT);
         done();
     });
+
+    
 });
